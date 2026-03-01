@@ -11,7 +11,10 @@ Elementor widget plugin for rendering a flower-style radial diagram with editabl
 - Add, edit, remove circles and hexagons via Elementor repeaters
 - Automatic radial positioning for any number of nodes
 - Scroll-triggered bloom animation (once)
-- Optional connectors and tooltips
+- Optional connectors
+- Popup card on node hover/focus (desktop) and click/tap (mobile/touch)
+- Full-card popup link support with image + title + description
+- Animation modes: `stagger` and `all_at_once_center_out`
 - Responsive and keyboard-focusable nodes
 
 ## Installation
@@ -27,7 +30,8 @@ Elementor widget plugin for rendering a flower-style radial diagram with editabl
 - `circles` (Repeater)
 - `hexagons` (Repeater)
 - `show_connectors`
-- `show_tooltips`
+- `enable_popup`
+- `animation_mode`
 
 ### Style
 - `container_size`
@@ -43,4 +47,4 @@ Elementor widget plugin for rendering a flower-style radial diagram with editabl
 - Icons use Elementor Icons control.
 - Bloom animation uses IntersectionObserver and falls back to immediate display.
 - `prefers-reduced-motion` disables bloom motion.
-
+- Legacy node `link` values are auto-mapped to popup `card_link` when `card_link` is empty.

@@ -77,7 +77,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		$circle_repeater->add_control(
 			'description',
 			array(
-				'label' => esc_html__( 'Tooltip Text', 'dope-elementor-diagram' ),
+				'label' => esc_html__( 'Description', 'dope-elementor-diagram' ),
 				'type'  => Controls_Manager::TEXTAREA,
 			)
 		);
@@ -90,9 +90,16 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			)
 		);
 		$circle_repeater->add_control(
-			'link',
+			'card_image',
 			array(
-				'label'       => esc_html__( 'Link', 'dope-elementor-diagram' ),
+				'label' => esc_html__( 'Popup Card Image', 'dope-elementor-diagram' ),
+				'type'  => Controls_Manager::MEDIA,
+			)
+		);
+		$circle_repeater->add_control(
+			'card_link',
+			array(
+				'label'       => esc_html__( 'Popup Card Link', 'dope-elementor-diagram' ),
 				'type'        => Controls_Manager::URL,
 				'placeholder' => 'https://example.com',
 				'dynamic'     => array(
@@ -136,7 +143,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		$hex_repeater->add_control(
 			'description',
 			array(
-				'label' => esc_html__( 'Tooltip Text', 'dope-elementor-diagram' ),
+				'label' => esc_html__( 'Description', 'dope-elementor-diagram' ),
 				'type'  => Controls_Manager::TEXTAREA,
 			)
 		);
@@ -149,9 +156,16 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			)
 		);
 		$hex_repeater->add_control(
-			'link',
+			'card_image',
 			array(
-				'label'       => esc_html__( 'Link', 'dope-elementor-diagram' ),
+				'label' => esc_html__( 'Popup Card Image', 'dope-elementor-diagram' ),
+				'type'  => Controls_Manager::MEDIA,
+			)
+		);
+		$hex_repeater->add_control(
+			'card_link',
+			array(
+				'label'       => esc_html__( 'Popup Card Link', 'dope-elementor-diagram' ),
 				'type'        => Controls_Manager::URL,
 				'placeholder' => 'https://example.com',
 				'dynamic'     => array(
@@ -184,14 +198,27 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		);
 
 		$this->add_control(
-			'show_tooltips',
+			'enable_popup',
 			array(
-				'label'        => esc_html__( 'Show Tooltips', 'dope-elementor-diagram' ),
+				'label'        => esc_html__( 'Enable Popup Card', 'dope-elementor-diagram' ),
 				'type'         => Controls_Manager::SWITCHER,
 				'default'      => 'yes',
-				'label_on'     => esc_html__( 'Show', 'dope-elementor-diagram' ),
-				'label_off'    => esc_html__( 'Hide', 'dope-elementor-diagram' ),
+				'label_on'     => esc_html__( 'Yes', 'dope-elementor-diagram' ),
+				'label_off'    => esc_html__( 'No', 'dope-elementor-diagram' ),
 				'return_value' => 'yes',
+			)
+		);
+
+		$this->add_control(
+			'animation_mode',
+			array(
+				'label'   => esc_html__( 'Animation Mode', 'dope-elementor-diagram' ),
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'stagger',
+				'options' => array(
+					'stagger'                => esc_html__( 'Stagger Bloom', 'dope-elementor-diagram' ),
+					'all_at_once_center_out' => esc_html__( 'All At Once Center-Out', 'dope-elementor-diagram' ),
+				),
 			)
 		);
 
@@ -386,7 +413,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		} elseif ( ! empty( $show_connectors_raw ) ) {
 			$show_connectors = true;
 		}
-		$show_tooltips   = 'yes' === ( $settings['show_tooltips'] ?? '' );
+		$enable_popup    = 'yes' === ( $settings['enable_popup'] ?? 'yes' );
 
 		$container_size = $this->sanitize_range( $settings['container_size']['size'] ?? 860, 420, 1200, 860 );
 		$circle_size    = $this->sanitize_range( $settings['circle_size']['size'] ?? 180, 100, 260, 180 );
@@ -396,14 +423,19 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 
 		$bloom_duration = $this->sanitize_range( $settings['bloom_duration'] ?? 900, 100, 2500, 900 );
 		$stagger_delay  = $this->sanitize_range( $settings['stagger_delay'] ?? 80, 0, 500, 80 );
+		$animation_mode = sanitize_key( (string) ( $settings['animation_mode'] ?? 'stagger' ) );
+		if ( ! in_array( $animation_mode, array( 'stagger', 'all_at_once_center_out' ), true ) ) {
+			$animation_mode = 'stagger';
+		}
 
 		$connector_color = $this->sanitize_color_rgba( $settings['connector_color'] ?? 'rgba(220, 228, 238, 0.95)', 'rgba(220, 228, 238, 0.95)' );
 
 		$config = array(
-			'showTooltips'  => $show_tooltips,
+			'enablePopup'   => $enable_popup,
 			'showConnectors' => $show_connectors,
 			'bloomDuration' => $bloom_duration,
 			'staggerDelay'  => $stagger_delay,
+			'animationMode' => $animation_mode,
 		);
 
 		$wrapper_style = sprintf(
@@ -420,7 +452,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		$circle_count = count( $circles );
 		$hex_count    = count( $hexagons );
 		?>
-		<div class="ded-diagram" style="<?php echo $wrapper_style; ?>" data-ded-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>">
+		<div class="ded-diagram" style="<?php echo $wrapper_style; ?>" data-ded-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>" data-ded-animation="<?php echo esc_attr( 'all_at_once_center_out' === $animation_mode ? 'all-at-once' : 'stagger' ); ?>">
 			<div class="ded-diagram__canvas" role="img" aria-label="<?php esc_attr_e( 'Flower diagram with circles and hexagons', 'dope-elementor-diagram' ); ?>">
 				<?php if ( $show_connectors ) : ?>
 				<svg class="ded-connectors-svg" aria-hidden="true" focusable="false"></svg>
@@ -431,7 +463,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $circle_count );
 						$delay = $index * $stagger_delay;
-						$this->render_node( $circle, 'circle', $index, $angle, 'var(--ded-circle-radius)', $delay, $show_tooltips );
+						$this->render_node( $circle, 'circle', $index, $angle, 'var(--ded-circle-radius)', $delay );
 						?>
 					<?php endforeach; ?>
 				</div>
@@ -441,18 +473,32 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $hex_count );
 						$delay = ( $circle_count + $index ) * $stagger_delay;
-						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'var(--ded-hexagon-radius)', $delay, $show_tooltips );
+						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'var(--ded-hexagon-radius)', $delay );
 						?>
 					<?php endforeach; ?>
 				</div>
 
 				<div class="ded-center-dot" aria-hidden="true"></div>
 			</div>
+
+			<div class="ded-popup" aria-hidden="true">
+				<div class="ded-popup-card" role="dialog" aria-live="polite">
+					<a class="ded-popup-link" href="#" target="_self" rel="">
+						<div class="ded-popup-image-wrap" hidden>
+							<img class="ded-popup-image" src="" alt="" loading="lazy" />
+						</div>
+						<div class="ded-popup-body">
+							<h4 class="ded-popup-title"></h4>
+							<p class="ded-popup-description"></p>
+						</div>
+					</a>
+				</div>
+			</div>
 		</div>
 		<?php
 	}
 
-	private function render_node( array $node, string $type, int $index, float $angle, string $radius, int $delay, bool $show_tooltips ): void {
+	private function render_node( array $node, string $type, int $index, float $angle, string $radius, int $delay ): void {
 		$node_class  = 'ded-node ded-node--' . $type;
 		$shape_class = 'ded-node-shape';
 		$style       = sprintf(
@@ -462,53 +508,36 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			esc_attr( (string) $delay ),
 			esc_attr( $node['color'] )
 		);
-
-		$tooltip = '';
-		if ( $show_tooltips && ! empty( $node['description'] ) ) {
-			$tooltip = $node['description'];
-		}
+		$popup_title            = $node['title'];
+		$popup_description      = $node['description'];
+		$popup_image            = isset( $node['card_image']['url'] ) ? $node['card_image']['url'] : '';
+		$popup_link             = isset( $node['card_link']['url'] ) ? $node['card_link']['url'] : '';
+		$popup_link_external    = ! empty( $node['card_link']['is_external'] );
+		$popup_link_nofollow    = ! empty( $node['card_link']['nofollow'] );
 		?>
 		<div class="<?php echo esc_attr( $node_class ); ?>" style="<?php echo $style; ?>">
-			<?php if ( ! empty( $node['link']['url'] ) ) : ?>
-				<?php $rel_attr = $this->build_rel_attribute( $node['link'] ); ?>
-				<a
-					class="ded-node-link"
-					href="<?php echo esc_url( $node['link']['url'] ); ?>"
-					<?php echo ! empty( $node['link']['is_external'] ) ? 'target="_blank"' : ''; ?>
-					<?php if ( '' !== $rel_attr ) : ?>
-					rel="<?php echo esc_attr( $rel_attr ); ?>"
-					<?php endif; ?>
-					data-type="<?php echo esc_attr( $type ); ?>"
-					data-index="<?php echo esc_attr( (string) $index ); ?>"
-					<?php if ( '' !== $tooltip ) : ?>
-					data-tooltip="<?php echo esc_attr( $tooltip ); ?>"
-					<?php endif; ?>
-				>
-					<div class="<?php echo esc_attr( $shape_class ); ?>">
-						<div class="ded-node-content">
-							<?php $this->render_node_icon( $node['icon'] ); ?>
-							<span class="ded-node-title"><?php echo esc_html( $node['title'] ); ?></span>
-						</div>
-					</div>
-				</a>
-			<?php else : ?>
-				<div
-					class="ded-node-link ded-node-link--static"
-					tabindex="0"
-					data-type="<?php echo esc_attr( $type ); ?>"
-					data-index="<?php echo esc_attr( (string) $index ); ?>"
-					<?php if ( '' !== $tooltip ) : ?>
-					data-tooltip="<?php echo esc_attr( $tooltip ); ?>"
-					<?php endif; ?>
-				>
-					<div class="<?php echo esc_attr( $shape_class ); ?>">
-						<div class="ded-node-content">
-							<?php $this->render_node_icon( $node['icon'] ); ?>
-							<span class="ded-node-title"><?php echo esc_html( $node['title'] ); ?></span>
-						</div>
+			<div
+				class="ded-node-link ded-node-link--static"
+				tabindex="0"
+				role="button"
+				aria-haspopup="dialog"
+				aria-expanded="false"
+				data-type="<?php echo esc_attr( $type ); ?>"
+				data-index="<?php echo esc_attr( (string) $index ); ?>"
+				data-popup-title="<?php echo esc_attr( $popup_title ); ?>"
+				data-popup-description="<?php echo esc_attr( $popup_description ); ?>"
+				data-popup-image="<?php echo esc_url( $popup_image ); ?>"
+				data-popup-link="<?php echo esc_url( $popup_link ); ?>"
+				data-popup-link-external="<?php echo $popup_link_external ? '1' : '0'; ?>"
+				data-popup-link-nofollow="<?php echo $popup_link_nofollow ? '1' : '0'; ?>"
+			>
+				<div class="<?php echo esc_attr( $shape_class ); ?>">
+					<div class="ded-node-content">
+						<?php $this->render_node_icon( $node['icon'] ); ?>
+						<span class="ded-node-title"><?php echo esc_html( $node['title'] ); ?></span>
 					</div>
 				</div>
-			<?php endif; ?>
+			</div>
 		</div>
 		<?php
 	}
@@ -521,19 +550,6 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		echo '<span class="ded-node-icon" aria-hidden="true">';
 		Icons_Manager::render_icon( $icon, array( 'aria-hidden' => 'true' ) );
 		echo '</span>';
-	}
-
-	private function build_rel_attribute( array $link ): string {
-		$rels = array();
-		if ( ! empty( $link['is_external'] ) ) {
-			$rels[] = 'noopener';
-			$rels[] = 'noreferrer';
-		}
-		if ( ! empty( $link['nofollow'] ) ) {
-			$rels[] = 'nofollow';
-		}
-
-		return implode( ' ', array_unique( $rels ) );
 	}
 
 	private function sanitize_nodes( array $nodes, string $fallback_color ): array {
@@ -567,6 +583,27 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				$link['nofollow']    = ! empty( $node['link']['nofollow'] );
 			}
 
+			$card_image = array(
+				'url' => '',
+			);
+			if ( isset( $node['card_image'] ) && is_array( $node['card_image'] ) ) {
+				$card_image['url'] = esc_url_raw( (string) ( $node['card_image']['url'] ?? '' ) );
+			}
+
+			$card_link = array(
+				'url'         => '',
+				'is_external' => false,
+				'nofollow'    => false,
+			);
+			if ( isset( $node['card_link'] ) && is_array( $node['card_link'] ) ) {
+				$card_link['url']         = esc_url_raw( (string) ( $node['card_link']['url'] ?? '' ) );
+				$card_link['is_external'] = ! empty( $node['card_link']['is_external'] );
+				$card_link['nofollow']    = ! empty( $node['card_link']['nofollow'] );
+			}
+			if ( '' === $card_link['url'] && '' !== $link['url'] ) {
+				$card_link = $link;
+			}
+
 			$sanitized[] = array(
 				'title'       => $title,
 				'description' => $description,
@@ -576,6 +613,8 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 					'library' => $icon_lib,
 				),
 				'link'        => $link,
+				'card_image'  => $card_image,
+				'card_link'   => $card_link,
 			);
 		}
 

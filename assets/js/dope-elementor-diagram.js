@@ -1,5 +1,4 @@
 (function () {
-  var tooltipEl = null;
   var bloomObserver = null;
   var diagramRoots = new Set();
   var resizeTimer = null;
@@ -9,6 +8,7 @@
   var delayedBuildByRoot = new WeakMap();
   var buildRetryTimerByRoot = new WeakMap();
   var buildRetryCountByRoot = new WeakMap();
+  var popupCleanupByRoot = new WeakMap();
   var SVG_NS = "http://www.w3.org/2000/svg";
   var prefersReducedMotion =
     typeof window.matchMedia === "function" &&
@@ -43,6 +43,10 @@
     }
   }
 
+  function isAllAtOnceMode(config) {
+    return config && config.animationMode === "all_at_once_center_out";
+  }
+
   function getBloomDurationMs(root, config) {
     var configDuration = Number(config && config.bloomDuration);
     if (Number.isFinite(configDuration) && configDuration > 0) {
@@ -61,57 +65,6 @@
     return 900;
   }
 
-  function ensureTooltip() {
-    if (tooltipEl && document.body.contains(tooltipEl)) {
-      return tooltipEl;
-    }
-
-    tooltipEl = document.querySelector(".ded-tooltip");
-    if (!tooltipEl) {
-      tooltipEl = document.createElement("div");
-      tooltipEl.className = "ded-tooltip";
-      tooltipEl.setAttribute("role", "tooltip");
-      document.body.appendChild(tooltipEl);
-    }
-
-    return tooltipEl;
-  }
-
-  function hideTooltip() {
-    var tooltip = ensureTooltip();
-    tooltip.classList.remove("is-visible");
-  }
-
-  function showTooltip(target, text) {
-    if (!text) {
-      return;
-    }
-
-    var tooltip = ensureTooltip();
-    tooltip.textContent = text;
-
-    var rect = target.getBoundingClientRect();
-    var top = rect.top + window.scrollY - tooltip.offsetHeight - 10;
-    var left = rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2;
-
-    if (left < 8) {
-      left = 8;
-    }
-
-    var maxLeft = window.scrollX + window.innerWidth - tooltip.offsetWidth - 8;
-    if (left > maxLeft) {
-      left = maxLeft;
-    }
-
-    if (top < window.scrollY + 8) {
-      top = rect.bottom + window.scrollY + 10;
-    }
-
-    tooltip.style.left = left + "px";
-    tooltip.style.top = top + "px";
-    tooltip.classList.add("is-visible");
-  }
-
   function getNodeFromTarget(target) {
     if (!(target instanceof Element)) {
       return null;
@@ -120,62 +73,297 @@
     return target.closest(".ded-node-link");
   }
 
-  function initTooltips(root, config) {
-    if (!config.showTooltips) {
+  function getPopupElements(root) {
+    var popup = root.querySelector(".ded-popup");
+    if (!popup) {
+      return null;
+    }
+
+    return {
+      popup: popup,
+      card: popup.querySelector(".ded-popup-card"),
+      link: popup.querySelector(".ded-popup-link"),
+      imageWrap: popup.querySelector(".ded-popup-image-wrap"),
+      image: popup.querySelector(".ded-popup-image"),
+      title: popup.querySelector(".ded-popup-title"),
+      description: popup.querySelector(".ded-popup-description"),
+    };
+  }
+
+  function setNodeExpanded(root, expandedNode) {
+    root.querySelectorAll(".ded-node-link[aria-expanded]").forEach(function (node) {
+      node.setAttribute("aria-expanded", node === expandedNode ? "true" : "false");
+    });
+  }
+
+  function positionPopup(root, node, popupElements) {
+    if (!popupElements || !popupElements.popup || !popupElements.card) {
       return;
     }
 
+    var popup = popupElements.popup;
+    var card = popupElements.card;
+    var rootRect = root.getBoundingClientRect();
+    var nodeRect = node.getBoundingClientRect();
+    var cardRect = card.getBoundingClientRect();
+
+    var left = nodeRect.left - rootRect.left + nodeRect.width / 2 - cardRect.width / 2;
+    var top = nodeRect.bottom - rootRect.top + 12;
+
+    var minLeft = 8;
+    var maxLeft = Math.max(minLeft, rootRect.width - cardRect.width - 8);
+    if (left < minLeft) {
+      left = minLeft;
+    }
+    if (left > maxLeft) {
+      left = maxLeft;
+    }
+
+    if (top + cardRect.height > rootRect.height - 8) {
+      top = nodeRect.top - rootRect.top - cardRect.height - 12;
+    }
+    if (top < 8) {
+      top = 8;
+    }
+
+    popup.style.left = left + "px";
+    popup.style.top = top + "px";
+  }
+
+  function closePopup(root) {
+    var popupElements = getPopupElements(root);
+    if (!popupElements) {
+      return;
+    }
+
+    popupElements.popup.classList.remove("is-open");
+    popupElements.popup.setAttribute("aria-hidden", "true");
+    root.__dedPopupPinned = false;
+    root.__dedActivePopupNode = null;
+    setNodeExpanded(root, null);
+  }
+
+  function openPopup(root, node, persistent) {
+    var popupElements = getPopupElements(root);
+    if (!popupElements || !popupElements.popup || !popupElements.link) {
+      return;
+    }
+
+    var title = node.getAttribute("data-popup-title") || "";
+    var description = node.getAttribute("data-popup-description") || "";
+    var image = node.getAttribute("data-popup-image") || "";
+    var link = node.getAttribute("data-popup-link") || "";
+    var isExternal = node.getAttribute("data-popup-link-external") === "1";
+    var nofollow = node.getAttribute("data-popup-link-nofollow") === "1";
+
+    if (popupElements.title) {
+      popupElements.title.textContent = title;
+    }
+    if (popupElements.description) {
+      popupElements.description.textContent = description;
+      popupElements.description.hidden = description === "";
+    }
+
+    if (popupElements.imageWrap && popupElements.image) {
+      if (image) {
+        popupElements.imageWrap.hidden = false;
+        popupElements.image.src = image;
+        popupElements.image.alt = title;
+      } else {
+        popupElements.imageWrap.hidden = true;
+        popupElements.image.removeAttribute("src");
+        popupElements.image.alt = "";
+      }
+    }
+
+    if (link) {
+      popupElements.link.href = link;
+      popupElements.link.classList.remove("is-disabled");
+      popupElements.link.setAttribute("tabindex", "0");
+      popupElements.link.setAttribute("aria-disabled", "false");
+      if (isExternal) {
+        popupElements.link.setAttribute("target", "_blank");
+      } else {
+        popupElements.link.setAttribute("target", "_self");
+      }
+      var rel = [];
+      if (isExternal) {
+        rel.push("noopener", "noreferrer");
+      }
+      if (nofollow) {
+        rel.push("nofollow");
+      }
+      if (rel.length) {
+        popupElements.link.setAttribute("rel", rel.join(" "));
+      } else {
+        popupElements.link.removeAttribute("rel");
+      }
+    } else {
+      popupElements.link.href = "#";
+      popupElements.link.classList.add("is-disabled");
+      popupElements.link.setAttribute("tabindex", "-1");
+      popupElements.link.setAttribute("aria-disabled", "true");
+      popupElements.link.setAttribute("target", "_self");
+      popupElements.link.removeAttribute("rel");
+    }
+
+    popupElements.popup.classList.add("is-open");
+    popupElements.popup.setAttribute("aria-hidden", "false");
+    positionPopup(root, node, popupElements);
+
+    root.__dedPopupPinned = !!persistent;
+    root.__dedActivePopupNode = node;
+    setNodeExpanded(root, node);
+  }
+
+  function initPopup(root, config) {
+    if (!config.enablePopup) {
+      closePopup(root);
+      return;
+    }
+
+    var popupElements = getPopupElements(root);
+    if (!popupElements || !popupElements.popup) {
+      return;
+    }
+    if (popupCleanupByRoot.has(root)) {
+      return;
+    }
+
+    var isTouchDevice =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(hover: none), (pointer: coarse)").matches;
+
+    var onMouseEnter = function (event) {
+      if (isTouchDevice || root.__dedPopupPinned) {
+        return;
+      }
+      var node = getNodeFromTarget(event.target);
+      if (!node) {
+        return;
+      }
+      openPopup(root, node, false);
+    };
     root.addEventListener(
       "mouseenter",
-      function (event) {
-        var node = getNodeFromTarget(event.target);
-        if (!node) {
-          return;
-        }
-
-        var text = node.getAttribute("data-tooltip");
-        if (text) {
-          showTooltip(node, text);
-        }
-      },
+      onMouseEnter,
       true
     );
 
+    var onMouseLeave = function (event) {
+      if (isTouchDevice || root.__dedPopupPinned) {
+        return;
+      }
+      var node = getNodeFromTarget(event.target);
+      if (!node) {
+        return;
+      }
+      closePopup(root);
+    };
     root.addEventListener(
       "mouseleave",
-      function (event) {
-        var node = getNodeFromTarget(event.target);
-        if (!node) {
-          return;
-        }
-        hideTooltip();
-      },
+      onMouseLeave,
       true
     );
 
+    var onFocusIn = function (event) {
+      var node = getNodeFromTarget(event.target);
+      if (!node || root.__dedPopupPinned) {
+        return;
+      }
+      openPopup(root, node, false);
+    };
     root.addEventListener(
       "focusin",
-      function (event) {
-        var node = getNodeFromTarget(event.target);
-        if (!node) {
-          return;
-        }
-
-        var text = node.getAttribute("data-tooltip");
-        if (text) {
-          showTooltip(node, text);
-        }
-      },
+      onFocusIn,
       true
     );
 
+    var onFocusOut = function () {
+      if (!root.__dedPopupPinned) {
+        closePopup(root);
+      }
+    };
     root.addEventListener(
       "focusout",
-      function () {
-        hideTooltip();
-      },
+      onFocusOut,
       true
     );
+
+    var onRootClick = function (event) {
+      var node = getNodeFromTarget(event.target);
+      if (!node) {
+        return;
+      }
+      event.preventDefault();
+      if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
+        closePopup(root);
+        return;
+      }
+      openPopup(root, node, true);
+    };
+    root.addEventListener("click", onRootClick);
+
+    var onRootKeyDown = function (event) {
+      var node = getNodeFromTarget(event.target);
+      if (!node) {
+        return;
+      }
+
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
+        closePopup(root);
+        return;
+      }
+
+      openPopup(root, node, true);
+      var activePopup = getPopupElements(root);
+      if (
+        activePopup &&
+        activePopup.link &&
+        !activePopup.link.classList.contains("is-disabled")
+      ) {
+        activePopup.link.focus();
+      }
+    };
+    root.addEventListener("keydown", onRootKeyDown);
+
+    var onPopupLinkClick = function (event) {
+      if (popupElements.link.classList.contains("is-disabled")) {
+        event.preventDefault();
+      }
+    };
+    popupElements.link.addEventListener("click", onPopupLinkClick);
+
+    var onDocumentClick = function (event) {
+      if (!root.contains(event.target)) {
+        closePopup(root);
+      }
+    };
+    document.addEventListener("click", onDocumentClick);
+
+    var onDocumentKeyDown = function (event) {
+      if (event.key === "Escape") {
+        closePopup(root);
+      }
+    };
+    document.addEventListener("keydown", onDocumentKeyDown);
+
+    popupCleanupByRoot.set(root, function () {
+      root.removeEventListener("mouseenter", onMouseEnter, true);
+      root.removeEventListener("mouseleave", onMouseLeave, true);
+      root.removeEventListener("focusin", onFocusIn, true);
+      root.removeEventListener("focusout", onFocusOut, true);
+      root.removeEventListener("click", onRootClick);
+      root.removeEventListener("keydown", onRootKeyDown);
+      popupElements.link.removeEventListener("click", onPopupLinkClick);
+      document.removeEventListener("click", onDocumentClick);
+      document.removeEventListener("keydown", onDocumentKeyDown);
+    });
   }
 
   function getCanvas(root) {
@@ -311,7 +499,8 @@
       line.setAttribute("stroke", strokeColor);
     }
 
-    line.style.setProperty("--ded-delay", String(delayMs) + "ms");
+    var safeDelay = Number.isFinite(Number(delayMs)) && Number(delayMs) > 0 ? Number(delayMs) : 0;
+    line.style.setProperty("--ded-delay", String(safeDelay) + "ms");
 
     svg.appendChild(line);
 
@@ -351,6 +540,7 @@
     var svg = getConnectorSvg(root);
     var canvas = getCanvas(root);
     var editorMode = isEditorMode();
+    var allAtOnce = isAllAtOnceMode(config);
 
     if (!svg || !canvas) {
       clearConnectorSvg(svg);
@@ -426,6 +616,9 @@
       var delayMs = parseDelayMs(delayValue);
       if (!delayMs && config.staggerDelay) {
         delayMs = index * Number(config.staggerDelay || 0);
+      }
+      if (allAtOnce) {
+        delayMs = 0;
       }
 
       createConnectorLine(svg, originX, originY, x2, y2, delayMs, strokeColor);
@@ -568,6 +761,12 @@
       buildRetryTimerByRoot.delete(root);
     }
     buildRetryCountByRoot.delete(root);
+
+    var popupCleanup = popupCleanupByRoot.get(root);
+    if (popupCleanup) {
+      popupCleanup();
+      popupCleanupByRoot.delete(root);
+    }
   }
 
   function bloom(root) {
@@ -576,6 +775,7 @@
     scheduleConnectorBuild(root);
 
     var config = parseConfig(root);
+    var allAtOnce = isAllAtOnceMode(config);
     var durationMs = getBloomDurationMs(root, config);
     var staggerMs = Number(config.staggerDelay);
     if (!Number.isFinite(staggerMs) || staggerMs < 0) {
@@ -583,7 +783,7 @@
     }
 
     var nodeCount = getNodesInRenderOrder(root).length;
-    var settleDelay = durationMs + nodeCount * staggerMs + 60;
+    var settleDelay = allAtOnce ? durationMs + 60 : durationMs + nodeCount * staggerMs + 60;
 
     var existingDelayedTimer = delayedBuildByRoot.get(root);
     if (existingDelayedTimer) {
@@ -628,6 +828,14 @@
     if (Number.isFinite(duration) && duration > 0) {
       root.style.setProperty("--ded-bloom-duration", duration + "ms");
     }
+
+    if (isAllAtOnceMode(config)) {
+      root.setAttribute("data-ded-animation", "all-at-once");
+      root.style.setProperty("--ded-mode-delay", "0ms");
+    } else {
+      root.setAttribute("data-ded-animation", "stagger");
+      root.style.removeProperty("--ded-mode-delay");
+    }
   }
 
   function initDiagram(root, forceReinit) {
@@ -649,8 +857,9 @@
     root.dataset.dedReady = "1";
     var config = parseConfig(root);
     var editorMode = isEditorMode();
+    var allAtOnce = isAllAtOnceMode(config);
     setCssVars(root, config);
-    initTooltips(root, config);
+    initPopup(root, config);
     if (editorMode) {
       root.classList.add("is-bloomed");
     }
@@ -681,6 +890,17 @@
       scheduleConnectorBuild(root);
     } else {
       initBloom(root);
+    }
+
+    var nodes = getNodesInRenderOrder(root);
+    if (allAtOnce) {
+      nodes.forEach(function (node) {
+        node.style.setProperty("--ded-delay", "0ms");
+      });
+    } else {
+      nodes.forEach(function (node) {
+        node.style.removeProperty("--ded-delay");
+      });
     }
   }
 
@@ -730,7 +950,14 @@
   }
 
   window.addEventListener("resize", function () {
-    hideTooltip();
+    diagramRoots.forEach(function (root) {
+      if (root.__dedActivePopupNode && root.__dedPopupPinned) {
+        var popupElements = getPopupElements(root);
+        if (popupElements && popupElements.popup.classList.contains("is-open")) {
+          positionPopup(root, root.__dedActivePopupNode, popupElements);
+        }
+      }
+    });
 
     if (resizeTimer) {
       window.clearTimeout(resizeTimer);
@@ -742,7 +969,20 @@
       });
     }, 120);
   });
-  window.addEventListener("scroll", hideTooltip, { passive: true });
+  window.addEventListener(
+    "scroll",
+    function () {
+      diagramRoots.forEach(function (root) {
+        if (root.__dedActivePopupNode && root.__dedPopupPinned) {
+          var popupElements = getPopupElements(root);
+          if (popupElements && popupElements.popup.classList.contains("is-open")) {
+            positionPopup(root, root.__dedActivePopupNode, popupElements);
+          }
+        }
+      });
+    },
+    { passive: true }
+  );
   window.addEventListener("load", function () {
     diagramRoots.forEach(function (root) {
       scheduleConnectorBuild(root);
