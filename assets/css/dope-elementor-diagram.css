@@ -1,0 +1,275 @@
+.ded-diagram {
+  --ded-container-size: 860px;
+  --ded-circle-size: 180px;
+  --ded-hexagon-size: 150px;
+  --ded-circle-radius: 145px;
+  --ded-hexagon-radius: 335px;
+  --ded-bloom-duration: 900ms;
+  --ded-connector-color: rgba(220, 228, 238, 0.95);
+  --ded-focus-color: #1f6fe5;
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+.ded-diagram__canvas {
+  position: relative;
+  width: min(100%, var(--ded-container-size));
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+.ded-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.ded-layer--circles {
+  z-index: 6;
+}
+
+.ded-layer--hexagons {
+  z-index: 4;
+}
+
+.ded-connectors-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.ded-connector-line {
+  stroke: var(--ded-connector-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: var(--ded-line-length, 0);
+  stroke-dashoffset: var(--ded-line-length, 0);
+  transition: stroke-dashoffset calc(var(--ded-bloom-duration) * 0.72) ease var(--ded-delay, 0ms);
+}
+
+.ded-center-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  box-shadow: 0 0 0 1px rgba(186, 197, 210, 0.9);
+}
+
+.ded-node {
+  --ded-current-radius: 0px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%) rotate(var(--ded-angle, 0deg))
+    translateX(var(--ded-current-radius)) rotate(calc(-1 * var(--ded-angle, 0deg)));
+  transition: transform var(--ded-bloom-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--ded-delay, 0ms);
+  will-change: transform;
+}
+
+.ded-node-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  text-decoration: none;
+  color: #ffffff;
+  outline: none;
+}
+
+.ded-node-link--static {
+  cursor: default;
+}
+
+.ded-node-shape {
+  position: relative;
+  width: var(--ded-circle-size);
+  height: var(--ded-circle-size);
+  border-radius: 50%;
+  background: var(--ded-node-color, #1f6fe5);
+  box-shadow: 0 16px 34px rgba(3, 18, 37, 0.3);
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.18);
+  filter: blur(6px);
+  transition:
+    transform var(--ded-bloom-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--ded-delay, 0ms),
+    opacity var(--ded-bloom-duration) ease var(--ded-delay, 0ms),
+    filter var(--ded-bloom-duration) ease var(--ded-delay, 0ms),
+    box-shadow 220ms ease;
+  will-change: transform, opacity, filter;
+}
+
+.ded-node--hexagon .ded-node-shape {
+  width: var(--ded-hexagon-size);
+  height: calc(var(--ded-hexagon-size) * 1.15);
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.ded-diagram.is-bloomed .ded-connector-line {
+  stroke-dashoffset: 0;
+}
+
+.ded-diagram.is-bloomed .ded-node {
+  --ded-current-radius: var(--ded-radius, 120px);
+}
+
+.ded-diagram.is-bloomed .ded-node-shape {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.ded-node-shape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(2, 18, 36, 0.15));
+  pointer-events: none;
+}
+
+.ded-node-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ded-node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 9px;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.ded-node--hexagon .ded-node-icon {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+.ded-node-title {
+  display: block;
+  max-width: 160px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.24;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+.ded-node--hexagon .ded-node-title {
+  max-width: 130px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.ded-node-link:hover .ded-node-shape,
+.ded-node-link:focus-visible .ded-node-shape,
+.ded-node-link:focus .ded-node-shape {
+  box-shadow: 0 20px 38px rgba(3, 18, 37, 0.37);
+}
+
+.ded-node-link:focus-visible .ded-node-shape,
+.ded-node-link:focus .ded-node-shape {
+  outline: 3px solid var(--ded-focus-color);
+  outline-offset: 3px;
+}
+
+.ded-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 280px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #16243a;
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  pointer-events: none;
+}
+
+.ded-tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+@media (max-width: 1024px) {
+  .ded-diagram {
+    --ded-circle-size: 152px;
+    --ded-hexagon-size: 128px;
+  }
+
+  .ded-node-title {
+    font-size: 13px;
+    max-width: 130px;
+  }
+
+  .ded-node--hexagon .ded-node-title {
+    font-size: 11px;
+    max-width: 112px;
+  }
+}
+
+@media (max-width: 767px) {
+  .ded-diagram {
+    --ded-circle-size: 124px;
+    --ded-hexagon-size: 104px;
+    --ded-circle-radius: calc(var(--ded-circle-radius) * 0.78);
+    --ded-hexagon-radius: calc(var(--ded-hexagon-radius) * 0.78);
+  }
+
+  .ded-node-icon {
+    font-size: 23px;
+    margin-bottom: 6px;
+  }
+
+  .ded-node--hexagon .ded-node-icon {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ded-node {
+    --ded-current-radius: var(--ded-radius, 120px);
+    transition: none;
+  }
+
+  .ded-connector-line {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+
+  .ded-node-shape {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}
