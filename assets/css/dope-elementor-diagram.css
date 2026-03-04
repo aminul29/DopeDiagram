@@ -14,15 +14,29 @@
   --ded-focus-color: #1f6fe5;
   position: relative;
   width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   padding: 12px;
+  box-sizing: border-box;
+  min-height: calc(var(--ded-canvas-size, 0px) + 24px);
 }
 
 .ded-diagram__canvas {
   position: relative;
-  width: min(100%, var(--ded-container-size));
+  width: 100%;
+  max-width: var(--ded-container-size);
+  height: var(--ded-canvas-size, auto);
   aspect-ratio: 1 / 1;
   margin: 0 auto;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@supports not (aspect-ratio: 1 / 1) {
+  .ded-diagram__canvas {
+    height: 0;
+    padding-top: 100%;
+  }
 }
 
 .ded-layer {

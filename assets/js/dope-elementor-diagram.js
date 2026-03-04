@@ -428,7 +428,44 @@
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }
 
+  function syncCanvasSize(root) {
+    var canvas = getCanvas(root);
+    if (!canvas) {
+      return 0;
+    }
+
+    var canvasRect = canvas.getBoundingClientRect();
+    var width = canvasRect.width || 0;
+    if (!width) {
+      var rootRect = root.getBoundingClientRect();
+      var configuredSize = parseCssPx(
+        window.getComputedStyle(root).getPropertyValue("--ded-container-size")
+      );
+      var rootInnerWidth = Math.max(0, (rootRect.width || 0) - 24);
+      if (configuredSize > 0) {
+        width = rootInnerWidth > 0 ? Math.min(rootInnerWidth, configuredSize) : configuredSize;
+      } else {
+        width = rootInnerWidth;
+      }
+    }
+
+    if (!width || !Number.isFinite(width)) {
+      return 0;
+    }
+
+    var normalizedWidth = Math.max(1, width);
+    var pxValue = normalizedWidth.toFixed(3) + "px";
+    if (root.__dedCanvasSize !== pxValue) {
+      root.style.setProperty("--ded-canvas-size", pxValue);
+      root.__dedCanvasSize = pxValue;
+    }
+
+    return normalizedWidth;
+  }
+
   function updateLayoutScale(root) {
+    syncCanvasSize(root);
+
     var canvas = getCanvas(root);
     if (!canvas) {
       return 1;
@@ -818,7 +855,9 @@
       popupCleanupByRoot.delete(root);
     }
 
+    root.style.removeProperty("--ded-canvas-size");
     root.style.removeProperty("--ded-layout-scale");
+    delete root.__dedCanvasSize;
     delete root.__dedLayoutScale;
   }
 
