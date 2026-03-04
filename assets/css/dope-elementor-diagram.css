@@ -291,6 +291,14 @@
 }
 
 @media (max-width: 767px) {
+  .elementor-widget-dope_elementor_flower_diagram .ded-node-icon {
+    display: none;
+  }
+
+  .elementor-widget-dope_elementor_flower_diagram.ded-mobile-icons-yes .ded-node-icon {
+    display: inline-flex;
+  }
+
   .ded-node-title {
     font-size: 11px;
     line-height: 1.2;

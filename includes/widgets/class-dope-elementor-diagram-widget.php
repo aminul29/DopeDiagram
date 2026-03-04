@@ -390,6 +390,20 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		);
 
 		$this->add_control(
+			'show_icons_mobile',
+			array(
+				'label'        => esc_html__( 'Show Icons on Mobile', 'dope-elementor-diagram' ),
+				'type'         => Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'Show', 'dope-elementor-diagram' ),
+				'label_off'    => esc_html__( 'Hide', 'dope-elementor-diagram' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'prefix_class' => 'ded-mobile-icons-',
+				'description'  => esc_html__( 'By default, node icons are hidden on screens 767px and below.', 'dope-elementor-diagram' ),
+			)
+		);
+
+		$this->add_control(
 			'bloom_duration',
 			array(
 				'label'   => esc_html__( 'Bloom Duration (ms)', 'dope-elementor-diagram' ),
