@@ -4,6 +4,8 @@
   --ded-hexagon-size: 150px;
   --ded-circle-radius: 145px;
   --ded-hexagon-radius: 335px;
+  --ded-icon-size: 30px;
+  --ded-hex-icon-size: 26px;
   --ded-layout-scale: 1;
   --ded-circle-size-effective: calc(var(--ded-circle-size) * var(--ded-layout-scale));
   --ded-hexagon-size-effective: calc(var(--ded-hexagon-size) * var(--ded-layout-scale));
@@ -166,12 +168,12 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 9px;
-  font-size: 30px;
+  font-size: var(--ded-icon-size);
   line-height: 1;
 }
 
 .ded-node--hexagon .ded-node-icon {
-  font-size: 26px;
+  font-size: var(--ded-hex-icon-size);
   margin-bottom: 8px;
 }
 
@@ -291,6 +293,11 @@
 }
 
 @media (max-width: 767px) {
+  .ded-diagram {
+    --ded-icon-size: 23px;
+    --ded-hex-icon-size: 20px;
+  }
+
   .elementor-widget-dope_elementor_flower_diagram .ded-node-icon {
     display: none;
   }
@@ -310,12 +317,7 @@
   }
 
   .ded-node-icon {
-    font-size: 23px;
     margin-bottom: 6px;
-  }
-
-  .ded-node--hexagon .ded-node-icon {
-    font-size: 20px;
   }
 
   .ded-popup {

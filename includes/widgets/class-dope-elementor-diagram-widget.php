@@ -403,6 +403,68 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			)
 		);
 
+		$this->add_responsive_control(
+			'circle_icon_size',
+			array(
+				'label'      => esc_html__( 'Circle Icon Size', 'dope-elementor-diagram' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array(
+					'px' => array(
+						'min'  => 10,
+						'max'  => 72,
+						'step' => 1,
+					),
+				),
+				'default'    => array(
+					'unit' => 'px',
+					'size' => 30,
+				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 26,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 23,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-icon-size: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'hexagon_icon_size',
+			array(
+				'label'      => esc_html__( 'Hexagon Icon Size', 'dope-elementor-diagram' ),
+				'type'       => Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array(
+					'px' => array(
+						'min'  => 10,
+						'max'  => 72,
+						'step' => 1,
+					),
+				),
+				'default'    => array(
+					'unit' => 'px',
+					'size' => 26,
+				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 22,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 20,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-hex-icon-size: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_control(
 			'bloom_duration',
 			array(
