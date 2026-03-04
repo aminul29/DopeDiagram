@@ -418,6 +418,53 @@
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   }
 
+  function parseCssPx(value) {
+    if (!value) {
+      return 0;
+    }
+
+    var parsed = parseFloat(String(value).replace("px", "").trim());
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  function updateLayoutScale(root) {
+    var canvas = getCanvas(root);
+    if (!canvas) {
+      return 1;
+    }
+
+    var canvasRect = canvas.getBoundingClientRect();
+    var canvasSize = Math.min(canvasRect.width || 0, canvasRect.height || 0);
+    if (!canvasSize) {
+      return 1;
+    }
+
+    var styles = window.getComputedStyle(root);
+    var configuredSize = parseCssPx(styles.getPropertyValue("--ded-container-size")) || canvasSize;
+    var circleSize = parseCssPx(styles.getPropertyValue("--ded-circle-size"));
+    var hexSize = parseCssPx(styles.getPropertyValue("--ded-hexagon-size"));
+    var circleRadius = parseCssPx(styles.getPropertyValue("--ded-circle-radius"));
+    var hexRadius = parseCssPx(styles.getPropertyValue("--ded-hexagon-radius"));
+    var halfCircleSpan = circleRadius + circleSize / 2;
+    var halfHexSpan = hexRadius + (hexSize * 1.15) / 2;
+    var requiredHalfSize = Math.max(configuredSize / 2, halfCircleSpan, halfHexSpan);
+    var requiredCanvasSize = requiredHalfSize > 0 ? requiredHalfSize * 2 : configuredSize;
+
+    var scale = canvasSize / requiredCanvasSize;
+    if (!Number.isFinite(scale) || scale <= 0) {
+      scale = 1;
+    }
+    scale = Math.min(1, scale);
+
+    var normalizedScale = scale.toFixed(4);
+    if (root.__dedLayoutScale !== normalizedScale) {
+      root.style.setProperty("--ded-layout-scale", normalizedScale);
+      root.__dedLayoutScale = normalizedScale;
+    }
+
+    return scale;
+  }
+
   function getNodesInRenderOrder(root) {
     var circles = Array.prototype.slice.call(
       root.querySelectorAll(".ded-layer--circles .ded-node")
@@ -546,6 +593,8 @@
       clearConnectorSvg(svg);
       return 0;
     }
+
+    updateLayoutScale(root);
 
     if (config.showConnectors === false) {
       clearConnectorSvg(svg);
@@ -767,6 +816,9 @@
       popupCleanup();
       popupCleanupByRoot.delete(root);
     }
+
+    root.style.removeProperty("--ded-layout-scale");
+    delete root.__dedLayoutScale;
   }
 
   function bloom(root) {
@@ -859,6 +911,7 @@
     var editorMode = isEditorMode();
     var allAtOnce = isAllAtOnceMode(config);
     setCssVars(root, config);
+    updateLayoutScale(root);
     initPopup(root, config);
     if (editorMode) {
       root.classList.add("is-bloomed");

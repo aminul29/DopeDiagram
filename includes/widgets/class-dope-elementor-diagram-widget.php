@@ -234,7 +234,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			)
 		);
 
-		$this->add_control(
+		$this->add_responsive_control(
 			'container_size',
 			array(
 				'label'      => esc_html__( 'Container Size', 'dope-elementor-diagram' ),
@@ -242,7 +242,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'size_units' => array( 'px' ),
 				'range'      => array(
 					'px' => array(
-						'min'  => 420,
+						'min'  => 260,
 						'max'  => 1200,
 						'step' => 10,
 					),
@@ -251,10 +251,21 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 					'unit' => 'px',
 					'size' => 860,
 				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 700,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 360,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-container-size: {{SIZE}}{{UNIT}};',
+				),
 			)
 		);
 
-		$this->add_control(
+		$this->add_responsive_control(
 			'circle_size',
 			array(
 				'label'      => esc_html__( 'Circle Size', 'dope-elementor-diagram' ),
@@ -262,7 +273,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'size_units' => array( 'px' ),
 				'range'      => array(
 					'px' => array(
-						'min'  => 100,
+						'min'  => 70,
 						'max'  => 260,
 						'step' => 2,
 					),
@@ -271,10 +282,21 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 					'unit' => 'px',
 					'size' => 180,
 				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 152,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 124,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-circle-size: {{SIZE}}{{UNIT}};',
+				),
 			)
 		);
 
-		$this->add_control(
+		$this->add_responsive_control(
 			'hexagon_size',
 			array(
 				'label'      => esc_html__( 'Hexagon Size', 'dope-elementor-diagram' ),
@@ -282,7 +304,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'size_units' => array( 'px' ),
 				'range'      => array(
 					'px' => array(
-						'min'  => 90,
+						'min'  => 60,
 						'max'  => 200,
 						'step' => 2,
 					),
@@ -291,10 +313,21 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 					'unit' => 'px',
 					'size' => 150,
 				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 128,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 104,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-hexagon-size: {{SIZE}}{{UNIT}};',
+				),
 			)
 		);
 
-		$this->add_control(
+		$this->add_responsive_control(
 			'circle_radius',
 			array(
 				'label'      => esc_html__( 'Circle Radius', 'dope-elementor-diagram' ),
@@ -302,7 +335,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'size_units' => array( 'px' ),
 				'range'      => array(
 					'px' => array(
-						'min'  => 70,
+						'min'  => 50,
 						'max'  => 320,
 						'step' => 2,
 					),
@@ -311,10 +344,21 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 					'unit' => 'px',
 					'size' => 145,
 				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 120,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 92,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-circle-radius: {{SIZE}}{{UNIT}};',
+				),
 			)
 		);
 
-		$this->add_control(
+		$this->add_responsive_control(
 			'hexagon_radius',
 			array(
 				'label'      => esc_html__( 'Hexagon Radius', 'dope-elementor-diagram' ),
@@ -322,7 +366,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'size_units' => array( 'px' ),
 				'range'      => array(
 					'px' => array(
-						'min'  => 180,
+						'min'  => 100,
 						'max'  => 480,
 						'step' => 2,
 					),
@@ -330,6 +374,17 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'default'    => array(
 					'unit' => 'px',
 					'size' => 335,
+				),
+				'tablet_default' => array(
+					'unit' => 'px',
+					'size' => 272,
+				),
+				'mobile_default' => array(
+					'unit' => 'px',
+					'size' => 210,
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .ded-diagram' => '--ded-hexagon-radius: {{SIZE}}{{UNIT}};',
 				),
 			)
 		);
@@ -415,12 +470,6 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		}
 		$enable_popup    = 'yes' === ( $settings['enable_popup'] ?? 'yes' );
 
-		$container_size = $this->sanitize_range( $settings['container_size']['size'] ?? 860, 420, 1200, 860 );
-		$circle_size    = $this->sanitize_range( $settings['circle_size']['size'] ?? 180, 100, 260, 180 );
-		$hexagon_size   = $this->sanitize_range( $settings['hexagon_size']['size'] ?? 150, 90, 200, 150 );
-		$circle_radius  = $this->sanitize_range( $settings['circle_radius']['size'] ?? 145, 70, 320, 145 );
-		$hexagon_radius = $this->sanitize_range( $settings['hexagon_radius']['size'] ?? 335, 180, 480, 335 );
-
 		$bloom_duration = $this->sanitize_range( $settings['bloom_duration'] ?? 900, 100, 2500, 900 );
 		$stagger_delay  = $this->sanitize_range( $settings['stagger_delay'] ?? 80, 0, 500, 80 );
 		$animation_mode = sanitize_key( (string) ( $settings['animation_mode'] ?? 'stagger' ) );
@@ -439,12 +488,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		);
 
 		$wrapper_style = sprintf(
-			'--ded-container-size:%1$spx;--ded-circle-size:%2$spx;--ded-hexagon-size:%3$spx;--ded-circle-radius:%4$spx;--ded-hexagon-radius:%5$spx;--ded-bloom-duration:%6$sms;--ded-connector-color:%7$s;',
-			esc_attr( (string) $container_size ),
-			esc_attr( (string) $circle_size ),
-			esc_attr( (string) $hexagon_size ),
-			esc_attr( (string) $circle_radius ),
-			esc_attr( (string) $hexagon_radius ),
+			'--ded-bloom-duration:%1$sms;--ded-connector-color:%2$s;',
 			esc_attr( (string) $bloom_duration ),
 			esc_attr( $connector_color )
 		);
@@ -463,7 +507,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $circle_count );
 						$delay = $index * $stagger_delay;
-						$this->render_node( $circle, 'circle', $index, $angle, 'var(--ded-circle-radius)', $delay );
+						$this->render_node( $circle, 'circle', $index, $angle, 'calc(var(--ded-circle-radius) * var(--ded-layout-scale))', $delay );
 						?>
 					<?php endforeach; ?>
 				</div>
@@ -473,7 +517,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $hex_count );
 						$delay = ( $circle_count + $index ) * $stagger_delay;
-						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'var(--ded-hexagon-radius)', $delay );
+						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'calc(var(--ded-hexagon-radius) * var(--ded-layout-scale))', $delay );
 						?>
 					<?php endforeach; ?>
 				</div>
