@@ -9,6 +9,7 @@
   var buildRetryTimerByRoot = new WeakMap();
   var buildRetryCountByRoot = new WeakMap();
   var popupCleanupByRoot = new WeakMap();
+  var elementorReadyHookBound = false;
   var SVG_NS = "http://www.w3.org/2000/svg";
   var prefersReducedMotion =
     typeof window.matchMedia === "function" &&
@@ -992,7 +993,19 @@
     }
   }
 
-  if (window.elementorFrontend && window.elementorFrontend.hooks) {
+  function bindElementorReadyHook() {
+    if (elementorReadyHookBound) {
+      return;
+    }
+
+    if (
+      !window.elementorFrontend ||
+      !window.elementorFrontend.hooks ||
+      typeof window.elementorFrontend.hooks.addAction !== "function"
+    ) {
+      return;
+    }
+
     window.elementorFrontend.hooks.addAction(
       "frontend/element_ready/dope_elementor_flower_diagram.default",
       function ($scope) {
@@ -1000,7 +1013,15 @@
         boot(scopeElement, true);
       }
     );
+
+    elementorReadyHookBound = true;
   }
+
+  bindElementorReadyHook();
+
+  window.addEventListener("elementor/frontend/init", function () {
+    bindElementorReadyHook();
+  });
 
   window.addEventListener("resize", function () {
     diagramRoots.forEach(function (root) {

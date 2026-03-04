@@ -40,6 +40,8 @@ final class Dope_Elementor_Diagram_Plugin {
 
 		add_action( 'elementor/widgets/register', array( $this, 'register_widgets' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_assets' ) );
+		add_action( 'elementor/frontend/after_register_scripts', array( $this, 'register_assets' ) );
+		add_action( 'elementor/frontend/after_register_styles', array( $this, 'register_assets' ) );
 		add_action( 'elementor/editor/after_enqueue_scripts', array( $this, 'register_assets' ) );
 	}
 
@@ -109,4 +111,3 @@ final class Dope_Elementor_Diagram_Plugin {
 		);
 	}
 }
-
