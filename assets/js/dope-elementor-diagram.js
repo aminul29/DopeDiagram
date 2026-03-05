@@ -11,6 +11,8 @@
   var popupCleanupByRoot = new WeakMap();
   var elementorReadyHookBound = false;
   var SVG_NS = "http://www.w3.org/2000/svg";
+  var POPUP_NODE_SELECTOR =
+    ".ded-layer--circles .ded-node-link, .ded-layer--hexagons .ded-node-link";
   var prefersReducedMotion =
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -66,12 +68,21 @@
     return 900;
   }
 
-  function getNodeFromTarget(target) {
+  function getPopupNodes(root) {
+    return Array.prototype.slice.call(root.querySelectorAll(POPUP_NODE_SELECTOR));
+  }
+
+  function getNodeFromTarget(root, target) {
     if (!(target instanceof Element)) {
       return null;
     }
 
-    return target.closest(".ded-node-link");
+    var node = target.closest(".ded-node-link");
+    if (!node || !root.contains(node) || !node.matches(POPUP_NODE_SELECTOR)) {
+      return null;
+    }
+
+    return node;
   }
 
   function getPopupElements(root) {
@@ -231,107 +242,112 @@
       return;
     }
 
+    var popupNodes = getPopupNodes(root);
+    if (!popupNodes.length) {
+      closePopup(root);
+      return;
+    }
+
     var isTouchDevice =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
-    var onMouseEnter = function (event) {
-      if (isTouchDevice || root.__dedPopupPinned) {
-        return;
-      }
-      var node = getNodeFromTarget(event.target);
-      if (!node) {
-        return;
-      }
-      openPopup(root, node, false);
-    };
-    root.addEventListener(
-      "mouseenter",
-      onMouseEnter,
-      true
-    );
+    var nodeCleanups = [];
+    popupNodes.forEach(function (popupNode) {
+      var onPointerEnter = function (event) {
+        if (isTouchDevice || root.__dedPopupPinned) {
+          return;
+        }
+        var node = getNodeFromTarget(root, event.currentTarget);
+        if (!node) {
+          return;
+        }
+        openPopup(root, node, false);
+      };
 
-    var onMouseLeave = function (event) {
-      if (isTouchDevice || root.__dedPopupPinned) {
-        return;
-      }
-      var node = getNodeFromTarget(event.target);
-      if (!node) {
-        return;
-      }
-      closePopup(root);
-    };
-    root.addEventListener(
-      "mouseleave",
-      onMouseLeave,
-      true
-    );
+      var onPointerLeave = function (event) {
+        if (isTouchDevice || root.__dedPopupPinned) {
+          return;
+        }
 
-    var onFocusIn = function (event) {
-      var node = getNodeFromTarget(event.target);
-      if (!node || root.__dedPopupPinned) {
-        return;
-      }
-      openPopup(root, node, false);
-    };
-    root.addEventListener(
-      "focusin",
-      onFocusIn,
-      true
-    );
+        var relatedNode = getNodeFromTarget(root, event.relatedTarget);
+        if (relatedNode && relatedNode === popupNode) {
+          return;
+        }
 
-    var onFocusOut = function () {
-      if (!root.__dedPopupPinned) {
         closePopup(root);
-      }
-    };
-    root.addEventListener(
-      "focusout",
-      onFocusOut,
-      true
-    );
+      };
 
-    var onRootClick = function (event) {
-      var node = getNodeFromTarget(event.target);
-      if (!node) {
-        return;
-      }
-      event.preventDefault();
-      if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
-        closePopup(root);
-        return;
-      }
-      openPopup(root, node, true);
-    };
-    root.addEventListener("click", onRootClick);
+      var onFocusIn = function (event) {
+        var node = getNodeFromTarget(root, event.currentTarget);
+        if (!node || root.__dedPopupPinned) {
+          return;
+        }
+        openPopup(root, node, false);
+      };
 
-    var onRootKeyDown = function (event) {
-      var node = getNodeFromTarget(event.target);
-      if (!node) {
-        return;
-      }
+      var onFocusOut = function () {
+        if (!root.__dedPopupPinned) {
+          closePopup(root);
+        }
+      };
 
-      if (event.key !== "Enter" && event.key !== " ") {
-        return;
-      }
+      var onClick = function (event) {
+        var node = getNodeFromTarget(root, event.currentTarget);
+        if (!node) {
+          return;
+        }
+        event.preventDefault();
+        if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
+          closePopup(root);
+          return;
+        }
+        openPopup(root, node, true);
+      };
 
-      event.preventDefault();
-      if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
-        closePopup(root);
-        return;
-      }
+      var onKeyDown = function (event) {
+        var node = getNodeFromTarget(root, event.currentTarget);
+        if (!node) {
+          return;
+        }
 
-      openPopup(root, node, true);
-      var activePopup = getPopupElements(root);
-      if (
-        activePopup &&
-        activePopup.link &&
-        !activePopup.link.classList.contains("is-disabled")
-      ) {
-        activePopup.link.focus();
-      }
-    };
-    root.addEventListener("keydown", onRootKeyDown);
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        event.preventDefault();
+        if (root.__dedPopupPinned && root.__dedActivePopupNode === node) {
+          closePopup(root);
+          return;
+        }
+
+        openPopup(root, node, true);
+        var activePopup = getPopupElements(root);
+        if (
+          activePopup &&
+          activePopup.link &&
+          !activePopup.link.classList.contains("is-disabled")
+        ) {
+          activePopup.link.focus();
+        }
+      };
+
+      popupNode.addEventListener("pointerenter", onPointerEnter);
+      popupNode.addEventListener("pointerleave", onPointerLeave);
+      popupNode.addEventListener("focusin", onFocusIn);
+      popupNode.addEventListener("focusout", onFocusOut);
+      popupNode.addEventListener("click", onClick);
+      popupNode.addEventListener("keydown", onKeyDown);
+
+      nodeCleanups.push(function () {
+        popupNode.removeEventListener("pointerenter", onPointerEnter);
+        popupNode.removeEventListener("pointerleave", onPointerLeave);
+        popupNode.removeEventListener("focusin", onFocusIn);
+        popupNode.removeEventListener("focusout", onFocusOut);
+        popupNode.removeEventListener("click", onClick);
+        popupNode.removeEventListener("keydown", onKeyDown);
+      });
+    });
 
     var onPopupLinkClick = function (event) {
       if (popupElements.link.classList.contains("is-disabled")) {
@@ -355,12 +371,9 @@
     document.addEventListener("keydown", onDocumentKeyDown);
 
     popupCleanupByRoot.set(root, function () {
-      root.removeEventListener("mouseenter", onMouseEnter, true);
-      root.removeEventListener("mouseleave", onMouseLeave, true);
-      root.removeEventListener("focusin", onFocusIn, true);
-      root.removeEventListener("focusout", onFocusOut, true);
-      root.removeEventListener("click", onRootClick);
-      root.removeEventListener("keydown", onRootKeyDown);
+      nodeCleanups.forEach(function (cleanup) {
+        cleanup();
+      });
       popupElements.link.removeEventListener("click", onPopupLinkClick);
       document.removeEventListener("click", onDocumentClick);
       document.removeEventListener("keydown", onDocumentKeyDown);

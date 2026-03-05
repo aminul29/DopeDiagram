@@ -42,6 +42,7 @@
 .ded-layer {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .ded-layer--circles {
@@ -106,6 +107,7 @@
   text-decoration: none;
   color: #ffffff;
   outline: none;
+  pointer-events: auto;
 }
 
 .ded-node-link--static {
@@ -140,6 +142,12 @@
   height: calc(var(--ded-hexagon-size-effective) * 1.15);
   border-radius: 0;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.ded-node--hexagon .ded-node-link,
+.ded-node--hexagon .ded-node-shape,
+.ded-node--hexagon .ded-node-content {
+  pointer-events: auto;
 }
 
 .ded-diagram.is-bloomed .ded-connector-line {
