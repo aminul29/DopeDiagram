@@ -107,6 +107,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				),
 			)
 		);
+		$this->register_popup_table_controls( $circle_repeater );
 
 		$this->add_control(
 			'circles',
@@ -173,6 +174,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				),
 			)
 		);
+		$this->register_popup_table_controls( $hex_repeater );
 
 		$this->add_control(
 			'hexagons',
@@ -223,6 +225,53 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		);
 
 		$this->end_controls_section();
+	}
+
+	private function register_popup_table_controls( Repeater $node_repeater ): void {
+		$table_row_repeater = new Repeater();
+
+		$table_row_repeater->add_control(
+			'research_text',
+			array(
+				'label'       => esc_html__( 'Research', 'dope-elementor-diagram' ),
+				'type'        => Controls_Manager::TEXTAREA,
+				'rows'        => 3,
+				'label_block' => true,
+			)
+		);
+
+		$table_row_repeater->add_control(
+			'link_label',
+			array(
+				'label'       => esc_html__( 'Link Label', 'dope-elementor-diagram' ),
+				'type'        => Controls_Manager::TEXT,
+				'label_block' => true,
+				'placeholder' => esc_html__( 'Read more', 'dope-elementor-diagram' ),
+			)
+		);
+
+		$table_row_repeater->add_control(
+			'link_url',
+			array(
+				'label'       => esc_html__( 'Link URL', 'dope-elementor-diagram' ),
+				'type'        => Controls_Manager::URL,
+				'placeholder' => 'https://example.com',
+				'dynamic'     => array(
+					'active' => true,
+				),
+			)
+		);
+
+		$node_repeater->add_control(
+			'popup_table_rows',
+			array(
+				'label'       => esc_html__( 'Popup Table Rows', 'dope-elementor-diagram' ),
+				'type'        => Controls_Manager::REPEATER,
+				'fields'      => $table_row_repeater->get_controls(),
+				'title_field' => '{{{ link_label || research_text || "Row" }}}',
+				'separator'   => 'before',
+			)
+		);
 	}
 
 	private function register_style_controls(): void {
@@ -603,15 +652,27 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 
 			<div class="ded-popup" aria-hidden="true">
 				<div class="ded-popup-card" role="dialog" aria-live="polite">
-					<a class="ded-popup-link" href="#" target="_self" rel="">
-						<div class="ded-popup-image-wrap" hidden>
-							<img class="ded-popup-image" src="" alt="" loading="lazy" />
+					<div class="ded-popup-image-wrap" hidden>
+						<img class="ded-popup-image" src="" alt="" loading="lazy" />
+					</div>
+					<div class="ded-popup-body">
+						<h4 class="ded-popup-title"></h4>
+						<p class="ded-popup-description"></p>
+						<a class="ded-popup-primary-link" href="#" target="_self" rel="" hidden>
+							<?php esc_html_e( 'Visit link', 'dope-elementor-diagram' ); ?>
+						</a>
+						<div class="ded-popup-table-wrap" hidden>
+							<table class="ded-popup-table">
+								<thead>
+									<tr>
+										<th scope="col"><?php esc_html_e( 'Research', 'dope-elementor-diagram' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Links', 'dope-elementor-diagram' ); ?></th>
+									</tr>
+								</thead>
+								<tbody class="ded-popup-table-body"></tbody>
+							</table>
 						</div>
-						<div class="ded-popup-body">
-							<h4 class="ded-popup-title"></h4>
-							<p class="ded-popup-description"></p>
-						</div>
-					</a>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -628,12 +689,17 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			esc_attr( (string) $delay ),
 			esc_attr( $node['color'] )
 		);
-		$popup_title            = $node['title'];
-		$popup_description      = $node['description'];
-		$popup_image            = isset( $node['card_image']['url'] ) ? $node['card_image']['url'] : '';
-		$popup_link             = isset( $node['card_link']['url'] ) ? $node['card_link']['url'] : '';
-		$popup_link_external    = ! empty( $node['card_link']['is_external'] );
-		$popup_link_nofollow    = ! empty( $node['card_link']['nofollow'] );
+		$popup_content = array(
+			'title'       => $node['title'],
+			'description' => $node['description'],
+			'image'       => isset( $node['card_image']['url'] ) ? $node['card_image']['url'] : '',
+			'cardLink'    => $node['card_link'],
+			'tableRows'   => $node['popup_table_rows'],
+		);
+		$popup_content = wp_json_encode( $popup_content );
+		if ( false === $popup_content ) {
+			$popup_content = '{}';
+		}
 		?>
 		<div class="<?php echo esc_attr( $node_class ); ?>" style="<?php echo $style; ?>">
 			<div
@@ -644,12 +710,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				aria-expanded="false"
 				data-type="<?php echo esc_attr( $type ); ?>"
 				data-index="<?php echo esc_attr( (string) $index ); ?>"
-				data-popup-title="<?php echo esc_attr( $popup_title ); ?>"
-				data-popup-description="<?php echo esc_attr( $popup_description ); ?>"
-				data-popup-image="<?php echo esc_url( $popup_image ); ?>"
-				data-popup-link="<?php echo esc_url( $popup_link ); ?>"
-				data-popup-link-external="<?php echo $popup_link_external ? '1' : '0'; ?>"
-				data-popup-link-nofollow="<?php echo $popup_link_nofollow ? '1' : '0'; ?>"
+				data-popup-content="<?php echo esc_attr( $popup_content ); ?>"
 			>
 				<div class="<?php echo esc_attr( $shape_class ); ?>">
 					<div class="ded-node-content">
@@ -693,14 +754,16 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			}
 
 			$link = array(
-				'url'         => '',
-				'is_external' => false,
-				'nofollow'    => false,
+				'url'               => '',
+				'is_external'       => false,
+				'nofollow'          => false,
+				'custom_attributes' => '',
 			);
 			if ( isset( $node['link'] ) && is_array( $node['link'] ) ) {
-				$link['url']         = esc_url_raw( (string) ( $node['link']['url'] ?? '' ) );
-				$link['is_external'] = ! empty( $node['link']['is_external'] );
-				$link['nofollow']    = ! empty( $node['link']['nofollow'] );
+				$link['url']               = esc_url_raw( (string) ( $node['link']['url'] ?? '' ) );
+				$link['is_external']       = ! empty( $node['link']['is_external'] );
+				$link['nofollow']          = ! empty( $node['link']['nofollow'] );
+				$link['custom_attributes'] = sanitize_text_field( (string) ( $node['link']['custom_attributes'] ?? '' ) );
 			}
 
 			$card_image = array(
@@ -711,17 +774,54 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			}
 
 			$card_link = array(
-				'url'         => '',
-				'is_external' => false,
-				'nofollow'    => false,
+				'url'               => '',
+				'is_external'       => false,
+				'nofollow'          => false,
+				'custom_attributes' => '',
 			);
 			if ( isset( $node['card_link'] ) && is_array( $node['card_link'] ) ) {
-				$card_link['url']         = esc_url_raw( (string) ( $node['card_link']['url'] ?? '' ) );
-				$card_link['is_external'] = ! empty( $node['card_link']['is_external'] );
-				$card_link['nofollow']    = ! empty( $node['card_link']['nofollow'] );
+				$card_link['url']               = esc_url_raw( (string) ( $node['card_link']['url'] ?? '' ) );
+				$card_link['is_external']       = ! empty( $node['card_link']['is_external'] );
+				$card_link['nofollow']          = ! empty( $node['card_link']['nofollow'] );
+				$card_link['custom_attributes'] = sanitize_text_field( (string) ( $node['card_link']['custom_attributes'] ?? '' ) );
 			}
 			if ( '' === $card_link['url'] && '' !== $link['url'] ) {
 				$card_link = $link;
+			}
+
+			$popup_table_rows = array();
+			if ( isset( $node['popup_table_rows'] ) && is_array( $node['popup_table_rows'] ) ) {
+				foreach ( $node['popup_table_rows'] as $row ) {
+					if ( ! is_array( $row ) ) {
+						continue;
+					}
+
+					$research_text = sanitize_textarea_field( (string) ( $row['research_text'] ?? '' ) );
+					$link_label    = sanitize_text_field( (string) ( $row['link_label'] ?? '' ) );
+					$link_url      = array(
+						'url'               => '',
+						'is_external'       => false,
+						'nofollow'          => false,
+						'custom_attributes' => '',
+					);
+
+					if ( isset( $row['link_url'] ) && is_array( $row['link_url'] ) ) {
+						$link_url['url']               = esc_url_raw( (string) ( $row['link_url']['url'] ?? '' ) );
+						$link_url['is_external']       = ! empty( $row['link_url']['is_external'] );
+						$link_url['nofollow']          = ! empty( $row['link_url']['nofollow'] );
+						$link_url['custom_attributes'] = sanitize_text_field( (string) ( $row['link_url']['custom_attributes'] ?? '' ) );
+					}
+
+					if ( '' === $research_text && '' === $link_label && '' === $link_url['url'] ) {
+						continue;
+					}
+
+					$popup_table_rows[] = array(
+						'research_text' => $research_text,
+						'link_label'    => $link_label,
+						'link_url'      => $link_url,
+					);
+				}
 			}
 
 			$sanitized[] = array(
@@ -735,6 +835,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				'link'        => $link,
 				'card_image'  => $card_image,
 				'card_link'   => $card_link,
+				'popup_table_rows' => $popup_table_rows,
 			);
 		}
 
