@@ -546,9 +546,22 @@
     }
 
     var onDocumentClick = function (event) {
-      if (!root.contains(event.target)) {
+      var target = event.target;
+      if (!(target instanceof Element)) {
         closePopup(root);
+        return;
       }
+
+      var clickedNode = getNodeFromTarget(root, target);
+      if (clickedNode) {
+        return;
+      }
+
+      if (popupElements.card && popupElements.card.contains(target)) {
+        return;
+      }
+
+      closePopup(root);
     };
     document.addEventListener("click", onDocumentClick);
 
