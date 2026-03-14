@@ -212,6 +212,21 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		);
 
 		$this->add_control(
+			'diagram_link',
+			array(
+				'label'       => esc_html__( 'Diagram Link', 'dope-elementor-diagram' ),
+				'type'        => Controls_Manager::URL,
+				'placeholder' => 'https://example.com',
+				'dynamic'     => array(
+					'active' => true,
+				),
+				'condition'   => array(
+					'enable_popup!' => 'yes',
+				),
+			)
+		);
+
+		$this->add_control(
 			'animation_mode',
 			array(
 				'label'   => esc_html__( 'Animation Mode', 'dope-elementor-diagram' ),
@@ -594,6 +609,19 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 			$show_connectors = true;
 		}
 		$enable_popup    = 'yes' === ( $settings['enable_popup'] ?? 'yes' );
+		$diagram_link    = array(
+			'url'               => '',
+			'is_external'       => false,
+			'nofollow'          => false,
+			'custom_attributes' => '',
+		);
+		if ( isset( $settings['diagram_link'] ) && is_array( $settings['diagram_link'] ) ) {
+			$diagram_link['url']               = esc_url_raw( (string) ( $settings['diagram_link']['url'] ?? '' ) );
+			$diagram_link['is_external']       = ! empty( $settings['diagram_link']['is_external'] );
+			$diagram_link['nofollow']          = ! empty( $settings['diagram_link']['nofollow'] );
+			$diagram_link['custom_attributes'] = sanitize_text_field( (string) ( $settings['diagram_link']['custom_attributes'] ?? '' ) );
+		}
+		$has_diagram_link = ! $enable_popup && '' !== $diagram_link['url'];
 
 		$bloom_duration = $this->sanitize_range( $settings['bloom_duration'] ?? 900, 100, 2500, 900 );
 		$stagger_delay  = $this->sanitize_range( $settings['stagger_delay'] ?? 80, 0, 500, 80 );
@@ -632,7 +660,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $circle_count );
 						$delay = $index * $stagger_delay;
-						$this->render_node( $circle, 'circle', $index, $angle, 'calc(var(--ded-circle-radius) * var(--ded-layout-scale))', $delay );
+						$this->render_node( $circle, 'circle', $index, $angle, 'calc(var(--ded-circle-radius) * var(--ded-layout-scale))', $delay, $enable_popup );
 						?>
 					<?php endforeach; ?>
 				</div>
@@ -642,12 +670,24 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 						<?php
 						$angle = $this->compute_angle( $index, $hex_count );
 						$delay = ( $circle_count + $index ) * $stagger_delay;
-						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'calc(var(--ded-hexagon-radius) * var(--ded-layout-scale))', $delay );
+						$this->render_node( $hexagon, 'hexagon', $index, $angle, 'calc(var(--ded-hexagon-radius) * var(--ded-layout-scale))', $delay, $enable_popup );
 						?>
 					<?php endforeach; ?>
 				</div>
 
 				<div class="ded-center-dot" aria-hidden="true"></div>
+
+				<?php if ( $has_diagram_link ) : ?>
+					<?php
+					$this->add_link_attributes( 'diagram_link_overlay', $diagram_link );
+					$this->add_render_attribute(
+						'diagram_link_overlay',
+						'aria-label',
+						esc_attr__( 'Open linked page for this diagram', 'dope-elementor-diagram' )
+					);
+					?>
+					<a class="ded-diagram-link-overlay" <?php echo $this->get_render_attribute_string( 'diagram_link_overlay' ); ?>></a>
+				<?php endif; ?>
 			</div>
 
 			<div class="ded-popup" aria-hidden="true">
@@ -679,7 +719,7 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		<?php
 	}
 
-	private function render_node( array $node, string $type, int $index, float $angle, string $radius, int $delay ): void {
+	private function render_node( array $node, string $type, int $index, float $angle, string $radius, int $delay, bool $enable_popup ): void {
 		$node_class  = 'ded-node ded-node--' . $type;
 		$shape_class = 'ded-node-shape';
 		$style       = sprintf(
@@ -704,10 +744,12 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 		<div class="<?php echo esc_attr( $node_class ); ?>" style="<?php echo $style; ?>">
 			<div
 				class="ded-node-link ded-node-link--static"
+				<?php if ( $enable_popup ) : ?>
 				tabindex="0"
 				role="button"
 				aria-haspopup="dialog"
 				aria-expanded="false"
+				<?php endif; ?>
 				data-type="<?php echo esc_attr( $type ); ?>"
 				data-index="<?php echo esc_attr( (string) $index ); ?>"
 				data-popup-content="<?php echo esc_attr( $popup_content ); ?>"
