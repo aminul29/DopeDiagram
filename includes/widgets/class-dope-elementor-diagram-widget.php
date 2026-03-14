@@ -648,8 +648,30 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 
 		$circle_count = count( $circles );
 		$hex_count    = count( $hexagons );
+		$diagram_attributes = array(
+			'class'              => 'ded-diagram',
+			'style'              => $wrapper_style,
+			'data-ded-config'    => wp_json_encode( $config ),
+			'data-ded-animation' => 'all_at_once_center_out' === $animation_mode ? 'all-at-once' : 'stagger',
+		);
+		if ( $has_diagram_link ) {
+			$diagram_attributes['class'] .= ' ded-diagram--linked';
+			$diagram_attributes['tabindex'] = '0';
+			$diagram_attributes['role'] = 'link';
+			$diagram_attributes['aria-label'] = esc_attr__( 'Open linked page for this diagram', 'dope-elementor-diagram' );
+		}
 		?>
-		<div class="ded-diagram" style="<?php echo $wrapper_style; ?>" data-ded-config="<?php echo esc_attr( wp_json_encode( $config ) ); ?>" data-ded-animation="<?php echo esc_attr( 'all_at_once_center_out' === $animation_mode ? 'all-at-once' : 'stagger' ); ?>">
+		<div
+			class="<?php echo esc_attr( $diagram_attributes['class'] ); ?>"
+			style="<?php echo esc_attr( $diagram_attributes['style'] ); ?>"
+			data-ded-config="<?php echo esc_attr( $diagram_attributes['data-ded-config'] ); ?>"
+			data-ded-animation="<?php echo esc_attr( $diagram_attributes['data-ded-animation'] ); ?>"
+			<?php if ( $has_diagram_link ) : ?>
+				tabindex="<?php echo esc_attr( $diagram_attributes['tabindex'] ); ?>"
+				role="<?php echo esc_attr( $diagram_attributes['role'] ); ?>"
+				aria-label="<?php echo esc_attr( $diagram_attributes['aria-label'] ); ?>"
+			<?php endif; ?>
+		>
 			<div class="ded-diagram__canvas" role="img" aria-label="<?php esc_attr_e( 'Flower diagram with circles and hexagons', 'dope-elementor-diagram' ); ?>">
 				<?php if ( $show_connectors ) : ?>
 				<svg class="ded-connectors-svg" aria-hidden="true" focusable="false"></svg>
@@ -676,19 +698,17 @@ class Dope_Elementor_Diagram_Widget extends Widget_Base {
 				</div>
 
 				<div class="ded-center-dot" aria-hidden="true"></div>
-
-				<?php if ( $has_diagram_link ) : ?>
-					<?php
-					$this->add_link_attributes( 'diagram_link_overlay', $diagram_link );
-					$this->add_render_attribute(
-						'diagram_link_overlay',
-						'aria-label',
-						esc_attr__( 'Open linked page for this diagram', 'dope-elementor-diagram' )
-					);
-					?>
-					<a class="ded-diagram-link-overlay" <?php echo $this->get_render_attribute_string( 'diagram_link_overlay' ); ?>></a>
-				<?php endif; ?>
 			</div>
+
+			<?php if ( $has_diagram_link ) : ?>
+				<?php
+				$this->add_link_attributes( 'diagram_link_proxy', $diagram_link );
+				$this->add_render_attribute( 'diagram_link_proxy', 'class', 'ded-diagram-link-proxy' );
+				$this->add_render_attribute( 'diagram_link_proxy', 'tabindex', '-1' );
+				$this->add_render_attribute( 'diagram_link_proxy', 'aria-hidden', 'true' );
+				?>
+				<a <?php echo $this->get_render_attribute_string( 'diagram_link_proxy' ); ?>></a>
+			<?php endif; ?>
 
 			<div class="ded-popup" aria-hidden="true">
 				<div class="ded-popup-card" role="dialog" aria-live="polite">

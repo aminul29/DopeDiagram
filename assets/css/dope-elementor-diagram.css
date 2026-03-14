@@ -50,7 +50,7 @@
 }
 
 .ded-layer--hexagons {
-  z-index: 4;
+  z-index: 5;
 }
 
 .ded-connectors-svg {
@@ -58,7 +58,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 5;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -85,19 +85,26 @@
   box-shadow: 0 0 0 1px rgba(186, 197, 210, 0.9);
 }
 
-.ded-diagram-link-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  display: block;
-  border-radius: 12px;
+.ded-diagram--linked {
   cursor: pointer;
 }
 
-.ded-diagram-link-overlay:focus-visible,
-.ded-diagram-link-overlay:focus {
+.ded-diagram--linked:focus-visible,
+.ded-diagram--linked:focus {
   outline: 3px solid var(--ded-focus-color);
   outline-offset: 4px;
+}
+
+.ded-diagram-link-proxy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .ded-node {
@@ -118,11 +125,13 @@
   left: 0;
   top: 0;
   display: inline-block;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
   text-decoration: none;
   color: #ffffff;
   outline: none;
   pointer-events: auto;
+  transition: transform 220ms ease;
+  will-change: transform;
 }
 
 .ded-node-link--static {
@@ -228,6 +237,12 @@
   max-width: calc(var(--ded-hexagon-size-effective) * 0.82);
   font-size: 12px;
   line-height: 1.3;
+}
+
+.ded-node-link:hover,
+.ded-node-link:focus-visible,
+.ded-node-link:focus {
+  transform: translate(-50%, -50%) scale(1.06);
 }
 
 .ded-node-link:hover .ded-node-shape,

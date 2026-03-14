@@ -9,6 +9,7 @@
   var buildRetryTimerByRoot = new WeakMap();
   var buildRetryCountByRoot = new WeakMap();
   var popupCleanupByRoot = new WeakMap();
+  var diagramLinkCleanupByRoot = new WeakMap();
   var elementorReadyHookBound = false;
   var SVG_NS = "http://www.w3.org/2000/svg";
   var POPUP_NODE_SELECTOR =
@@ -584,6 +585,55 @@
     });
   }
 
+  function initDiagramLink(root, config) {
+    var existingCleanup = diagramLinkCleanupByRoot.get(root);
+    if (existingCleanup) {
+      existingCleanup();
+      diagramLinkCleanupByRoot.delete(root);
+    }
+
+    var proxyLink = root.querySelector(".ded-diagram-link-proxy");
+    if (!proxyLink || !config || config.enablePopup) {
+      root.classList.remove("ded-diagram--linked");
+      root.removeAttribute("tabindex");
+      root.removeAttribute("role");
+      root.removeAttribute("aria-label");
+      return;
+    }
+
+    var activateLink = function () {
+      proxyLink.click();
+    };
+
+    var onClick = function (event) {
+      if (event.target === proxyLink) {
+        return;
+      }
+      activateLink();
+    };
+
+    var onKeyDown = function (event) {
+      if (event.target !== root) {
+        return;
+      }
+
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      activateLink();
+    };
+
+    root.addEventListener("click", onClick);
+    root.addEventListener("keydown", onKeyDown);
+
+    diagramLinkCleanupByRoot.set(root, function () {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("keydown", onKeyDown);
+    });
+  }
+
   function getCanvas(root) {
     return root.querySelector(".ded-diagram__canvas");
   }
@@ -1072,6 +1122,12 @@
       popupCleanupByRoot.delete(root);
     }
 
+    var diagramLinkCleanup = diagramLinkCleanupByRoot.get(root);
+    if (diagramLinkCleanup) {
+      diagramLinkCleanup();
+      diagramLinkCleanupByRoot.delete(root);
+    }
+
     root.style.removeProperty("--ded-canvas-size");
     root.style.removeProperty("--ded-layout-scale");
     delete root.__dedCanvasSize;
@@ -1170,6 +1226,7 @@
     setCssVars(root, config);
     updateLayoutScale(root);
     initPopup(root, config);
+    initDiagramLink(root, config);
     if (editorMode) {
       root.classList.add("is-bloomed");
     }
